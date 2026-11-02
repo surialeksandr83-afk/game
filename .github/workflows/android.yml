@@ -1,0 +1,65 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.3
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract game
+        run: |
+          unzip TheGame.zip -d source
+          mkdir -p build/android
+
+      - name: Create Android preset
+        run: |
+          cd source/The_Game_Godot_Project
+          cat > export_presets.cfg <<'EOF'
+          [preset.0]
+          name="Android"
+          platform="Android"
+          runnable=true
+          dedicated_server=false
+          custom_features=""
+          export_filter="all_resources"
+          include_filter=""
+          exclude_filter=""
+          export_path=""
+          encryption_include_filters=""
+          encryption_exclude_filters=""
+          encrypt_pck=false
+          encrypt_directory=false
+          encryption_key=""
+
+          [preset.0.options]
+          custom_template/debug=""
+          custom_template/release=""
+          gradle_build/use_gradle_build=false
+          architectures/armeabi-v7a=false
+          architectures/arm64-v8a=true
+          version/code=1
+          version/name="1.0"
+          package/unique_name="com.mell.thegame"
+          package/name="The Game"
+          package/signed=true
+          EOF
+
+      - name: Build APK
+        run: |
+          godot --headless --path source/The_Game_Godot_Project --editor --quit
+          godot --headless --path source/The_Game_Godot_Project --export-debug Android build/android/TheGame.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: The-Game-APK
+          path: build/android/TheGame.apk
